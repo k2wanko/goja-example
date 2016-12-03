@@ -4,26 +4,29 @@ import (
 	"fmt"
 
 	"github.com/dop251/goja"
-	"github.com/dop251/goja_nodejs/require"
+	"github.com/k2wanko/goja-example/timer"
 )
 
 func main() {
-	registry := new(require.Registry)
+	registry := timer.NewRegistry()
 
 	vm := goja.New()
-	rm := registry.Enable(vm)
+	registry.Enable(vm)
 
-	var v goja.Value
-	if sum, err := rm.Require("sum.js"); err != nil {
+	vm.Set("debug", func(c goja.FunctionCall) goja.Value {
+		fmt.Printf("%v\n", c.Arguments[0])
+		return goja.Null()
+	})
+
+	_, err := vm.RunString(`
+        setTimeout(function() {
+            debug('timeout')
+        }, 1000)
+    `)
+
+	if err != nil {
 		panic(err)
-	} else {
-		if sum, ok := goja.AssertFunction(sum); ok {
-			v, err = sum(goja.Undefined(), vm.ToValue(6), vm.ToValue(7))
-			if err != nil {
-				panic(err)
-			}
-		}
 	}
 
-	fmt.Printf("%T, %#v\n", v, v)
+	registry.Wait()
 }
